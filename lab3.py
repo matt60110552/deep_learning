@@ -129,18 +129,21 @@ class EEGNet(nn.Module):
         return x
 
 
-def evaluate(model, X, Y, Batch_size=64):
+def evaluate(model, Loader):
 
-    inputs = Variable(torch.from_numpy(X.astype(np.float32)).cuda(0))
-    predicted = model(inputs)
+    for i, batch in enumerate(Loader):
+        inputs, labels = batch
+        inputs = inputs.to("cuda")
+        labels = np.asarray(labels)
+        predicted = model(inputs)
 
-    mask = predicted[:, 0] < predicted[:, 1]
-    result = np.where(mask.cpu(), 1, 0)
-    Y = Y.astype(np.int32)
+        mask = predicted[:, 0] < predicted[:, 1]
+        result = np.where(mask.cpu(), 1, 0)
+        labels = labels.astype(np.int32)
 
-    results = accuracy_score(Y, result)
+        results = accuracy_score(labels, result)
 
-    return results
+        return results
 
 
 if __name__ == "__main__":
@@ -157,8 +160,8 @@ if __name__ == "__main__":
         net_relu = DeepConvNet(activation="relu").cuda(0)
         net_lrelu = DeepConvNet(activation="leaky_relu").cuda(0)
     criterion = nn.CrossEntropyLoss()  # DOn't forget to add softmax layer if change to another loss function
-    Batch_size = 16
-    Learning_rate = 5e-3
+    Batch_size = 64
+    Learning_rate = 1e-2
     Epochs = 200
     optimizer_elu = optim.Adam(net_elu.parameters(), lr=Learning_rate)
     optimizer_relu = optim.Adam(net_relu.parameters(), lr=Learning_rate)
@@ -176,19 +179,13 @@ if __name__ == "__main__":
     for epoch in range(Epochs):
 
         running_loss = 0.0
-        epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
+        # epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
         train_accuracy_batch = []
         test_accuracy_batch = []
-        for i in epoch_bar:
-            start = i * Batch_size
-            end = min(i * Batch_size + Batch_size, len(train_X))  # the last batch may bigger than the whole data
-
-            inputs = torch.from_numpy(train_X.astype(np.float32)[start:end])
-            labels = torch.FloatTensor(np.array([train_Y[start:end]]).T*1.0)
-
-            # wrap them in Variable
-            inputs, labels = Variable(inputs.cuda(0)), Variable(labels.cuda(0))
-
+        for i, batch in enumerate(tqdm(train_data, desc='Epoch %d' % (epoch+1))):
+            inputs, labels = batch
+            labels = labels.to("cuda")
+            inputs = inputs.to("cuda")
             # zero the parameter gradients
             optimizer_elu.zero_grad()
 
@@ -207,9 +204,10 @@ if __name__ == "__main__":
 
             # print("loss: {}\n".format(loss.data))
             running_loss += loss.data.item()
-            epoch_bar.set_description('Epoch %d Loss: %.3f' % (epoch+1, loss/(i+1)))
 
-            test_accuracy_batch.append(evaluate(net_elu, test_X, test_Y, Batch_size=Batch_size))
+            test_accuracy_batch.append(evaluate(net_elu, test_data))
+
+        tqdm.write(f'Epoch {epoch+1}, Loss: {running_loss:.4f}')
         train_accuracy_elu.append(np.mean(train_accuracy_batch))
         test_accuracy_elu.append(np.mean(test_accuracy_batch))
 
@@ -223,19 +221,13 @@ if __name__ == "__main__":
     for epoch in range(Epochs):
 
         running_loss = 0.0
-        epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
+        # epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
         train_accuracy_batch = []
         test_accuracy_batch = []
-        for i in epoch_bar:
-            start = i * Batch_size
-            end = min(i * Batch_size + Batch_size, len(train_X))  # the last batch may bigger than the whole data
-
-            inputs = torch.from_numpy(train_X.astype(np.float32)[start:end])
-            labels = torch.FloatTensor(np.array([train_Y[start:end]]).T*1.0)
-
-            # wrap them in Variable
-            inputs, labels = Variable(inputs.cuda(0)), Variable(labels.cuda(0))
-
+        for i, batch in enumerate(tqdm(train_data, desc='Epoch %d' % (epoch+1))):
+            inputs, labels = batch
+            labels = labels.to("cuda")
+            inputs = inputs.to("cuda")
             # zero the parameter gradients
             optimizer_relu.zero_grad()
 
@@ -254,9 +246,9 @@ if __name__ == "__main__":
 
             # print("loss: {}\n".format(loss.data))
             running_loss += loss.data.item()
-            epoch_bar.set_description('Epoch %d Loss: %.3f' % (epoch+1, loss/(i+1)))
 
-            test_accuracy_batch.append(evaluate(net_relu, test_X, test_Y, Batch_size=Batch_size))
+            test_accuracy_batch.append(evaluate(net_relu, test_data))
+        tqdm.write(f'Epoch {epoch+1}, Loss: {running_loss:.4f}')
         train_accuracy_relu.append(np.mean(train_accuracy_batch))
         test_accuracy_relu.append(np.mean(test_accuracy_batch))
 
@@ -270,19 +262,13 @@ if __name__ == "__main__":
     for epoch in range(Epochs):
 
         running_loss = 0.0
-        epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
+        # epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
         train_accuracy_batch = []
         test_accuracy_batch = []
-        for i in epoch_bar:
-            start = i * Batch_size
-            end = min(i * Batch_size + Batch_size, len(train_X))  # the last batch may bigger than the whole data
-
-            inputs = torch.from_numpy(train_X.astype(np.float32)[start:end])
-            labels = torch.FloatTensor(np.array([train_Y[start:end]]).T*1.0)
-
-            # wrap them in Variable
-            inputs, labels = Variable(inputs.cuda(0)), Variable(labels.cuda(0))
-
+        for i, batch in enumerate(tqdm(train_data, desc='Epoch %d' % (epoch+1))):
+            inputs, labels = batch
+            labels = labels.to("cuda")
+            inputs = inputs.to("cuda")
             # zero the parameter gradients
             optimizer_lrelu.zero_grad()
 
@@ -301,9 +287,9 @@ if __name__ == "__main__":
 
             # print("loss: {}\n".format(loss.data))
             running_loss += loss.data.item()
-            epoch_bar.set_description('Epoch %d Loss: %.3f' % (epoch+1, loss/(i+1)))
 
-            test_accuracy_batch.append(evaluate(net_lrelu, test_X, test_Y, Batch_size=Batch_size))
+            test_accuracy_batch.append(evaluate(net_lrelu, test_data))
+        tqdm.write(f'Epoch {epoch+1}, Loss: {running_loss:.4f}')
         train_accuracy_lrelu.append(np.mean(train_accuracy_batch))
         test_accuracy_lrelu.append(np.mean(test_accuracy_batch))
 
