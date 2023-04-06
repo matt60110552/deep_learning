@@ -34,6 +34,7 @@
 std::ostream& info = std::cout;
 std::ostream& error = std::cerr;
 std::ostream& debug = *(new std::ofstream);
+std::fstream fs;
 
 /**
  * 64-bit bitboard implementation for 2048
@@ -776,6 +777,7 @@ public:
 			float coef = 100.0 / unit;
 			info << n;
 			info << "\t" "mean = " << mean;
+			fs << mean << "\n";
 			info << "\t" "max = " << max;
 			info << std::endl;
 			for (int t = 1, c = 0; c < unit; c += stat[t++]) {
@@ -848,6 +850,7 @@ private:
 
 int main(int argc, const char* argv[]) {
 	info << "TDL2048-Demo" << std::endl;
+	fs.open("means.txt", std::fstream::in | std::fstream::out);
 	learning tdl;
 
 	// set the learning parameters
@@ -902,7 +905,7 @@ int main(int argc, const char* argv[]) {
 	}
 
 	// store the model into file
-	tdl.save("");
-
+	tdl.save("lab2_weight");
+	fs.close();
 	return 0;
 }
