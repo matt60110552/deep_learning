@@ -152,17 +152,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.model == "eegnet":
-        net_elu = EEGNet(activation="elu").cuda(0)
-        net_relu = EEGNet(activation="relu").cuda(0)
-        net_lrelu = EEGNet(activation="leaky_relu").cuda(0)
+        net_elu = EEGNet(activation="elu").to("cuda")
+        net_relu = EEGNet(activation="relu").to("cuda")
+        net_lrelu = EEGNet(activation="leaky_relu").to("cuda")
     elif args.model == "deepconvnet":
-        net_elu = DeepConvNet(activation="elu").cuda(0)
-        net_relu = DeepConvNet(activation="relu").cuda(0)
-        net_lrelu = DeepConvNet(activation="leaky_relu").cuda(0)
+        net_elu = DeepConvNet(activation="elu").to("cuda")
+        net_relu = DeepConvNet(activation="relu").to("cuda")
+        net_lrelu = DeepConvNet(activation="leaky_relu").to("cuda")
     criterion = nn.CrossEntropyLoss()  # DOn't forget to add softmax layer if change to another loss function
-    Batch_size = 64
-    Learning_rate = 1e-2
-    Epochs = 200
+    Batch_size = 256
+    Learning_rate = 2e-3
+    Epochs = 150
     optimizer_elu = optim.Adam(net_elu.parameters(), lr=Learning_rate)
     optimizer_relu = optim.Adam(net_relu.parameters(), lr=Learning_rate)
     optimizer_lrelu = optim.Adam(net_lrelu.parameters(), lr=Learning_rate)
@@ -171,13 +171,14 @@ if __name__ == "__main__":
     train_dataset = TensorDataset(torch.Tensor(train_X), torch.Tensor(train_Y))
     test_dataset = TensorDataset(torch.Tensor(test_X), torch.Tensor(test_Y))
 
-    train_data = DataLoader(train_dataset, batch_size=Batch_size, shuffle=True)
-    test_data = DataLoader(test_dataset, batch_size=1080)
+    # train_data = DataLoader(train_dataset, batch_size=Batch_size, shuffle=True)
+    # test_data = DataLoader(test_dataset, batch_size=1080)
 
     train_accuracy_elu = []
     test_accuracy_elu = []
     for epoch in range(Epochs):
-
+        train_data = DataLoader(train_dataset, batch_size=Batch_size, shuffle=True)
+        test_data = DataLoader(test_dataset, batch_size=1080)
         running_loss = 0.0
         # epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
         train_accuracy_batch = []
@@ -211,15 +212,17 @@ if __name__ == "__main__":
         train_accuracy_elu.append(np.mean(train_accuracy_batch))
         test_accuracy_elu.append(np.mean(test_accuracy_batch))
 
-    print("train_accuracy_elu: {}".format(train_accuracy_elu))
-    print("test_accuracy_elu: {}".format(test_accuracy_elu))
+    # print("train_accuracy_elu: {}".format(train_accuracy_elu))
+    # print("test_accuracy_elu: {}".format(test_accuracy_elu)) 
+    print("highest_accuracy_elu: {}".format(max(test_accuracy_elu)))
     plt.plot(np.arange(len(train_accuracy_elu)), train_accuracy_elu, color='red', linestyle="-", markersize="16", label="train_elu")
     plt.plot(np.arange(len(test_accuracy_elu)), test_accuracy_elu, color='blue', linestyle="-", markersize="16", label="test_elu")
 
     train_accuracy_relu = []
     test_accuracy_relu = []
     for epoch in range(Epochs):
-
+        train_data = DataLoader(train_dataset, batch_size=Batch_size, shuffle=True)
+        test_data = DataLoader(test_dataset, batch_size=1080)
         running_loss = 0.0
         # epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
         train_accuracy_batch = []
@@ -252,15 +255,17 @@ if __name__ == "__main__":
         train_accuracy_relu.append(np.mean(train_accuracy_batch))
         test_accuracy_relu.append(np.mean(test_accuracy_batch))
 
-    print("train_accuracy_relu: {}".format(train_accuracy_relu))
-    print("test_accuracy_relu: {}".format(test_accuracy_relu))
+    # print("train_accuracy_relu: {}".format(train_accuracy_relu))
+    # print("test_accuracy_relu: {}".format(test_accuracy_relu))
+    print("highest_accuracy_relu: {}".format(max(test_accuracy_relu)))
     plt.plot(np.arange(len(train_accuracy_relu)), train_accuracy_relu, color='brown', linestyle="-", markersize="16", label="train_relu")
     plt.plot(np.arange(len(test_accuracy_relu)), test_accuracy_relu, color='pink', linestyle="-", markersize="16", label="test_relu")
 
     train_accuracy_lrelu = []
     test_accuracy_lrelu = []
     for epoch in range(Epochs):
-
+        train_data = DataLoader(train_dataset, batch_size=Batch_size, shuffle=True)
+        test_data = DataLoader(test_dataset, batch_size=1080)
         running_loss = 0.0
         # epoch_bar = tqdm(range(len(train_X)//Batch_size + int(bool(len(train_X) % Batch_size))), desc='Epoch %d' % (epoch+1))  # deal with the last one batch
         train_accuracy_batch = []
@@ -293,8 +298,9 @@ if __name__ == "__main__":
         train_accuracy_lrelu.append(np.mean(train_accuracy_batch))
         test_accuracy_lrelu.append(np.mean(test_accuracy_batch))
 
-    print("train_accuracy_lrelu: {}".format(train_accuracy_lrelu))
-    print("test_accuracy_lrelu: {}".format(test_accuracy_lrelu))
+    # print("train_accuracy_lrelu: {}".format(train_accuracy_lrelu))
+    # print("test_accuracy_lrelu: {}".format(test_accuracy_lrelu))
+    print("highest_accuracy_lrelu: {}".format(max(test_accuracy_lrelu)))
     plt.plot(np.arange(len(train_accuracy_lrelu)), train_accuracy_lrelu, color='olive', linestyle="-", markersize="16", label="train_lrelu")
     plt.plot(np.arange(len(test_accuracy_lrelu)), test_accuracy_lrelu, color='cyan', linestyle="-", markersize="16", label="test_lrelu")
     # plt.plot(len(train_accuracy), train_accuracy, color='red', linestyle="-", marker=".", label="train_accuracy")
