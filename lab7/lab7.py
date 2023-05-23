@@ -38,7 +38,7 @@ class CustomDataset(Dataset):
         
         image = image.astype(np.float32) / 255.0  # Normalize pixel values
         image = torch.from_numpy(image).permute(2, 0, 1)
-        # image = self.transform(image)
+        image = self.transform(image)
         return image, label
 
 
@@ -163,7 +163,7 @@ class ContextUnet(nn.Module):
         Be careful with this part, use nn.AvgPool2d() with the number that can divide current width
         and length with no remain
         """
-        self.to_vec = nn.Sequential(nn.AvgPool2d(10), nn.GELU())
+        self.to_vec = nn.Sequential(nn.AvgPool2d(8), nn.GELU())
 
         self.timeembed1 = EmbedFC(1, 2*n_feat)
         self.timeembed2 = EmbedFC(1, 1*n_feat)
@@ -176,7 +176,7 @@ class ContextUnet(nn.Module):
         """
         self.up0 = nn.Sequential(
             # nn.ConvTranspose2d(6 * n_feat, 2 * n_feat, 7, 7), # when concat temb and cemb end up w 6*n_feat
-            nn.ConvTranspose2d(2 * n_feat, 2 * n_feat, 10, 10),  # otherwise just have 2*n_feat
+            nn.ConvTranspose2d(2 * n_feat, 2 * n_feat, 8, 8),  # otherwise just have 2*n_feat
             nn.GroupNorm(8, 2 * n_feat),
             nn.ReLU(),
         )
@@ -371,14 +371,14 @@ class DDPM(nn.Module):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=2, help="please input batch_size")
+    parser.add_argument("--batch_size", type=int, default=16, help="please input batch_size")
     parser.add_argument("--data_train_path", default="./iclevr", help="please input images' location")
     # parser.add_argument("--data_test_path", default="iclevr/images/test", help="please input images' location")
     parser.add_argument("--train_json_path", default="./dataset/train.json", help="path for train json file")
     parser.add_argument("--test_json_path", default="./dataset/test.json", help="path for test json file")
     parser.add_argument("--new_test_json_path", default="./dataset/new_test.json", help="path for test json file")
     parser.add_argument("--object_json_path", default="./dataset/objects.json", help="path for object json file")
-    parser.add_argument("--n_epochs", type=int, default=2, help="number of epochs")
+    parser.add_argument("--n_epochs", type=int, default=30, help="number of epochs")
     parser.add_argument("--n_objects", type=int, default=24, help="number of objects")
     parser.add_argument("--n_feats", type=int, default=128, help="number of feats")
     parser.add_argument("--lrate", type=float, default=1e-4, help="learning rate")
@@ -452,20 +452,21 @@ if __name__ == "__main__":
             """
             spilt test-cond_list due to memory capacity
             """
-            # n_sample = len(test_cond_list)
-            # cond_tensor = torch.FloatTensor(np.array(test_cond_list)).to(device)
-            # x_gen, x_gen_store = ddpm.test_sample(n_sample, (3, 240, 320), cond_tensor, device=device)
-            # print(f"x_gen: {x_gen.size()}")
-            # print(f"x_gen_store: {len(x_gen_store)}")
             n_sample = len(test_cond_list)
-            batch_size = 8  # Specify the desired batch size
+            cond_tensor = torch.FloatTensor(np.array(test_cond_list)).to(device)
+            x_gen, x_gen_store = ddpm.test_sample(n_sample, (3, 64, 64), cond_tensor, device=device)
+            print(f"x_gen: {x_gen.size()}")
+            print(f"x_gen_store: {len(x_gen_store)}")
+            save_image(x_gen, f'./output/output_epoch{ep}.png', nrow=8, normalize=True, range=(-1, 1))
+            # n_sample = len(test_cond_list)
+            # batch_size = 8  # Specify the desired batch size
 
-            for i in range(0, n_sample, batch_size):
-                # Get a batch of cond_tensor
-                batch_cond = torch.FloatTensor(np.array(test_cond_list[i:i+batch_size])).to(device)
+            # for i in range(0, n_sample, batch_size):
+            #     # Get a batch of cond_tensor
+            #     batch_cond = torch.FloatTensor(np.array(test_cond_list[i:i+batch_size])).to(device)
 
-                # Generate samples for the current batch
-                x_gen, x_gen_store = ddpm.test_sample(batch_cond.size(0), (3, 240, 320), batch_cond, device=device)
+            #     # Generate samples for the current batch
+            #     x_gen, x_gen_store = ddpm.test_sample(batch_cond.size(0), (3, 64, 64), batch_cond, device=device)
 
-                print(f"x_gen: {x_gen.size()}")
-                print(f"x_gen_store: {len(x_gen_store)}")
+            #     print(f"x_gen: {x_gen.size()}")
+            #     print(f"x_gen_store: {len(x_gen_store)}")
